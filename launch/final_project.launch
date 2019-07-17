@@ -1,0 +1,107 @@
+<?xml version="1.0"?>
+<launch>
+  <param name="/use_sim_time" value="true"/>
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(find final_project)/worlds/final_project.world"/>
+    <arg name="paused" value="false"/>
+    <arg name="use_sim_time" value="true"/>
+    <arg name="gui" value="true"/>
+    <arg name="headless" value="false"/>
+    <arg name="debug" value="false"/>
+  </include>
+
+  <!-- urdf xml robot description loaded on the Parameter Server, converting the xacro into a proper urdf file-->
+  <param name="robot_description" command="$(find xacro)/xacro '$(find racecar_description)/urdf/racecar.xacro'" />
+
+  <!-- push robot_description to factory and spawn robot in gazebo -->
+  <node name="racecar_spawn" pkg="gazebo_ros" type="spawn_model" output="screen" args="-urdf -param robot_description -model racecar -x -3.5 -y 8.5 -z 0.05" />
+
+  <!-- ros_control racecar launch file -->
+  <include file="$(find racecar_control)/launch/racecar_control.launch" ns="/"/>
+
+  <!-- Spawn the MUXs -->
+  <arg name="racecar_version" default="racecar-v2" />
+  <include file="$(find racecar)/launch/mux.launch" ns="vesc" />
+
+  <!--node pkg="project4" name="gazebo_odometry_node_prj4" type="gazebo_odometry_prj4.py" output="screen"/-->
+
+ <!--arg name="IS_TWISTSTAMPED" default="true" />
+  <arg name="publish_covariance" default="false"/>
+
+  <group if="$(arg publish_covariance)">
+    <param name="laser_scan_matcher_node/do_compute_covariance" value="1"/>
+    <param name="laser_scan_matcher_node/publish_pose_with_covariance" value="true"/>
+    <param name="laser_scan_matcher_node/publish_pose_with_covariance_stamped" value="true"/>
+  </group>
+  <node pkg="laser_scan_matcher" type="laser_scan_matcher_node"
+    name="laser_scan_matcher_node" output="screen">  
+    <param name="use_imu" value="false" />
+    <param name="base_frame" value="base_link" />
+    <param name="publish_tf" value="true" />
+    <param name="fixed_frame" value="odom" />
+    <param name="max_iterations" value="30"/>
+    <param name="max_correspondence_dist" value="0.5" />
+    <param name="max_angular_correction_deg" value="60.0" />
+    <param name="max_linear_correction" value="1.0" />
+    <param name="epsilon_xy" value="0.00001" />
+    <param name="epsilon_theta" value=" 0.00001" />
+  </node-->
+
+  <arg name="tf_map_scanmatch_transform_frame_name" default="scanmatcher_frame"/>
+  <arg name="base_frame" default="base_link"/>
+  <arg name="odom_frame" default="base_link"/>
+  <arg name="pub_map_odom_transform" default="true"/>
+  <arg name="scan_subscriber_queue_size" default="5"/>
+  <arg name="scan_topic" default="scan"/>
+  <arg name="map_size" default="2048"/>
+  
+  <node pkg="hector_mapping" type="hector_mapping" name="hector_mapping" output="screen">
+    
+    <!-- Frame names -->
+    <param name="map_frame" value="odom" />
+    <param name="base_frame" value="$(arg base_frame)" />
+    <param name="odom_frame" value="$(arg odom_frame)" />
+    
+    <!-- Tf use -->
+    <param name="use_tf_scan_transformation" value="true"/>
+    <param name="use_tf_pose_start_estimate" value="false"/>
+    <param name="pub_map_odom_transform" value="$(arg pub_map_odom_transform)"/>
+    <param name="pub_map_scanmatch_transform" value="false"/>    
+
+    <!-- Map size / start point -->
+    <param name="map_resolution" value="0.050"/>
+    <param name="map_size" value="$(arg map_size)"/>
+    <param name="map_start_x" value="0.5"/>
+    <param name="map_start_y" value="0.5" />
+    <param name="map_multi_res_levels" value="2" />
+    
+    <!-- Map update parameters -->
+    <param name="update_factor_free" value="0.4"/>
+    <param name="update_factor_occupied" value="0.9" />    
+    <param name="map_update_distance_thresh" value="0.4"/>
+    <param name="map_update_angle_thresh" value="0.06" />
+    <param name="laser_z_min_value" value = "-1.0" />
+    <param name="laser_z_max_value" value = "1.0" />
+    
+    <!-- Advertising config --> 
+    <param name="advertise_map_service" value="true"/>
+    
+    <param name="scan_subscriber_queue_size" value="$(arg scan_subscriber_queue_size)"/>
+    <param name="scan_topic" value="$(arg scan_topic)"/>
+    
+    <!-- Debug parameters -->
+    <!--
+      <param name="output_timing" value="false"/>
+      <param name="pub_drawings" value="true"/>
+      <param name="pub_debug_output" value="true"/>
+    -->
+    <param name="tf_map_scanmatch_transform_frame_name" value="$(arg tf_map_scanmatch_transform_frame_name)" />
+  </node>
+    
+  <!--<node pkg="tf" type="static_transform_publisher" name="map_nav_broadcaster" args="0 0 0 0 0 0 map nav 100"/>-->
+
+
+
+  <include file="$(find final_project)/launch/localization.launch" />
+
+</launch>
